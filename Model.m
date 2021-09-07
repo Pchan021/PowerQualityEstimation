@@ -5,8 +5,15 @@ V_values=RCV_load2;
 
 %loading data
 %taking phaseA values
-Curr=C_values(:,2);%column1 is time column2 is phaseA values column3 is phaseB...
-Volt=V_values(:,2);
+sumI_fundamental=0;
+sumTHD_Iph=0;
+sumV_fundamental=0;
+sumTHD_Vph=0;
+sumPF=0;
+totalI_fundamental=0;
+for p=2:1:4
+Curr=C_values(:,p);%column1 is time column2 is phaseA values column3 is phaseB...
+Volt=V_values(:,p);
 %data set up
 number_of_readings = length(Curr);
 stop_time = C_values(number_of_readings,1);%time stamp of the last reading
@@ -23,8 +30,8 @@ for i=1:n %we are generating waves upto the nth harmonic
         %%column matrix with harmonics(i) along x  axis and values(j) in y axis
         sine_wave(j,i) = sin(i * freq*2*pi* time_clock(j));% of the form sin(k * 2pi/L *x) 
         cos_wave(j,i) = cos(i * freq*2*pi* time_clock(j));
-    end;
-end;
+    end
+end
 
 %feature Extraction process
 sine_part_I=0; cos_part_I=0;
@@ -67,17 +74,34 @@ end
 %Calculation finding RMS, THD and PowerFactor
 I_rms= sqrt(sum_sq_I /2); %rms of total current waveform
 I_fundamental= I_mag(1)/sqrt(2); %rms value of fundamental component of I
-THD_I= 100*(sqrt(I_rms^2 - I_fundamental^2)) /I_fundamental %Total Harmonic Distortion
-CF_I= max(Curr)/I_rms %Crest Factor
+HD_Iph=(I_rms^2 - I_fundamental^2);
+THD_I= 100*(sqrt(I_rms^2 - I_fundamental^2)) /I_fundamental; %Total Harmonic Distortion
+CF_I= max(Curr)/I_rms; %Crest Factor
 
 V_rms= sqrt(sum_sq_V /2);
 V_fundamental= V_mag(1)/sqrt(2);
-THD_V= 100*(sqrt(V_rms^2 - V_fundamental^2)) /V_fundamental%Total harmonic Distortion
-CF_V= max(Volt)/V_rms %Crest Factor
+HD_Vph=(V_rms^2 - V_fundamental^2);
+THD_V= 100*(sqrt(V_rms^2 - V_fundamental^2)) /V_fundamental;%Total harmonic Distortion
+CF_V= max(Volt)/V_rms; %Crest Factor
 
-disp_pf= cosd(I_arg(1)-V_arg(1)); % pf between fundamental components
+disp_pf= cosd(I_arg(1)); % pf between fundamental components
 dist_pf= 1/(sqrt(1+(THD_I/100)^2)*sqrt(1+(THD_V/100)^2));
-pf = disp_pf * dist_pf %true pf = distortion pf * displacement pf
+pf = disp_pf * dist_pf; %true pf = distortion pf * displacement pf
+
+sumI_fundamental=sumI_fundamental + (I_fundamental^2);
+sumTHD_Iph=sumTHD_Iph +HD_Iph ;
+sumV_fundamental=sumV_fundamental + (V_fundamental^2);
+sumTHD_Vph=sumTHD_Vph +(HD_Vph) ;
+
+sumPF=sumPF+((sin(I_arg(1))-V_arg(1)) *I_fundamental);
+totalI_fundamental=totalI_fundamental + I_fundamental;
+
+end
+
+%Calculating THD and OCF
+ETHD_I=((sumTHD_Iph/sumI_fundamental))*100
+ETHD_V=(sumTHD_Vph/sumV_fundamental)*100
+OCF=sumPF/totalI_fundamental
 
 
 %%Grephs
@@ -116,4 +140,4 @@ for i=1:3
    PQF = PQF + K(i)*(1 - PQ(i));
 end
  
-PQF=PQF/1
+PQF=PQF/1;
